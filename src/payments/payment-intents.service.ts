@@ -4,18 +4,15 @@ import { ChannelsService } from 'src/channels/channels.service';
 import { Repository } from 'typeorm';
 
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
-import {
-  PaymentIntent,
-  PaymentIntentStatus,
-} from './entities/payment-intent.entity';
+import { PaymentIntent, PaymentIntentStatus } from './entities/payment-intent.entity';
 import { PaymentGatewayService } from './payment-gateway.service';
 
 @Injectable()
 export class PaymentIntentsService {
   constructor(
     @InjectRepository(PaymentIntent)
-    private paymentIntentsRepository: Repository<PaymentIntent>,
-    private channelsService: ChannelsService,
+    private readonly paymentIntentsRepository: Repository<PaymentIntent>,
+    private readonly channelsService: ChannelsService,
     private readonly gatewayService: PaymentGatewayService,
   ) {}
 

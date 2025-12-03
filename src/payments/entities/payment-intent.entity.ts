@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 import { Channel } from '../../channels/entities/channel.entity';
 import { Payment } from './payment.entity';
@@ -64,10 +64,10 @@ export class PaymentIntent {
   @UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
   updatedAt: Date;
 
-
   @ManyToOne(() => Channel, (channel) => channel.paymentIntents, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'channel_id' })
   channel: Channel;
 
   @OneToOne(() => Payment, (payment) => payment.paymentIntent)

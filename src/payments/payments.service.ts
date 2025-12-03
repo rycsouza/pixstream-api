@@ -18,7 +18,7 @@ export class PaymentsService {
   ) {}
 
   async handleGatewayWebhook(body: any) {
-    const { externalReference, status, amount } = body;
+    const { externalReference, status, id } = body;
     if (!externalReference)
       throw new BadRequestException('externalReference é obrigatório.');
 
@@ -39,14 +39,12 @@ export class PaymentsService {
     if (existing && existing.status === PaymentStatus.CONFIRMED)
       return { ignored: true, reason: 'Pagamento já processado' };
 
-    const value = amount ?? Number(intent.amount);
-    const amountStr = Number(value).toFixed(2);
-
+    const amountStr = Number(intent.amount).toFixed(2);
     const payment = this.paymentRepository.create({
       paymentIntentId: intent.id,
       channelId: intent.channelId,
       userId: intent.channel.userId,
-      gatewayPaymentId: body.id,
+      gatewayPaymentId: id ?? externalReference,
       amount: amountStr,
       feeAmount: '0.00',
       netAmount: amountStr,
