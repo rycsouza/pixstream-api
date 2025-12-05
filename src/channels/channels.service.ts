@@ -48,4 +48,10 @@ export class ChannelsService {
 
     return this.channelRepository.save(channel);
   }
+
+  async findByWidgetToken(widgetToken: string) {
+    return this.channelRepository.findOne({
+      where: { widgetToken, isActive: true },
+    });
+  }
 }
