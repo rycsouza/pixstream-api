@@ -1,11 +1,16 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChannelsService } from 'src/channels/channels.service';
 import { Repository } from 'typeorm';
 
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
-import { PaymentIntent, PaymentIntentStatus } from './entities/payment-intent.entity';
-import { PaymentGatewayService } from './payment-gateway.service';
+import {
+  PaymentIntent,
+  PaymentIntentStatus,
+} from './entities/payment-intent.entity';
+
+import type { IPaymentGateway } from './gateways/payment-gateway.interface';
+import { PAYMENT_GATEWAY } from './gateways/payment-gateway.provider';
 
 @Injectable()
 export class PaymentIntentsService {
@@ -13,7 +18,8 @@ export class PaymentIntentsService {
     @InjectRepository(PaymentIntent)
     private readonly paymentIntentsRepository: Repository<PaymentIntent>,
     private readonly channelsService: ChannelsService,
-    private readonly gatewayService: PaymentGatewayService,
+    @Inject(PAYMENT_GATEWAY)
+    private readonly gateway: IPaymentGateway,
   ) {}
 
   async createForChannelSlug(slug: string, dto: CreatePaymentIntentDto) {
@@ -32,10 +38,11 @@ export class PaymentIntentsService {
     });
     await this.paymentIntentsRepository.save(paymentIntent);
 
-    const pixCharge = await this.gatewayService.createPixCharge({
+    const pixCharge = await this.gateway.createPixCharge({
       amount: dto.amount,
-      reference: `PSTR-${channel.id}`,
-      expirationInMinutes: 30,
+      reference: `PSTR-${paymentIntent.id}`,
+      currency: 'BRL',
+      description: `Doação para o canal ${channel.name}`,
     });
 
     paymentIntent.externalReference = pixCharge.txid;
@@ -49,16 +56,17 @@ export class PaymentIntentsService {
       donorMessage: paymentIntent.donorMessage,
       status: paymentIntent.status,
       expiresAt: paymentIntent.expiresAt,
-      qrcode: pixCharge.qrcode,
+      qrcode: pixCharge.qrCode,
       txid: pixCharge.txid,
     };
   }
 
   async findByExternalReference(externalReference: string) {
     if (!externalReference) return null;
+    externalReference = externalReference.split('-')[1] ?? externalReference;
 
     return this.paymentIntentsRepository.findOne({
-      where: { externalReference },
+      where: { id: externalReference },
       relations: ['channel'],
     });
   }

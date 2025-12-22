@@ -1,11 +1,14 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AlertsService } from 'src/alerts/alerts.service';
 import { WalletService } from 'src/wallet/wallet.service';
 import { Repository } from 'typeorm';
 
 import { Payment, PaymentStatus } from './entities/payment.entity';
+import { PAYMENT_GATEWAY } from './gateways/payment-gateway.provider';
 import { PaymentIntentsService } from './payment-intents.service';
+
+import type { IPaymentGateway } from './gateways/payment-gateway.interface';
 
 @Injectable()
 export class PaymentsService {
@@ -15,10 +18,14 @@ export class PaymentsService {
     private readonly paymentIntentsService: PaymentIntentsService,
     private readonly walletService: WalletService,
     private readonly alertsService: AlertsService,
+
+    @Inject(PAYMENT_GATEWAY)
+    private readonly gateway: IPaymentGateway,
   ) {}
 
-  async handleGatewayWebhook(body: any) {
-    const { externalReference, status, id } = body;
+  async handleGatewayWebhook(body: any, headers: Record<string, any> = {}) {
+    const { externalReference, status, amount } =
+      await this.gateway.parseWebhook(body, headers);
     if (!externalReference)
       throw new BadRequestException('externalReference é obrigatório.');
 
@@ -39,12 +46,12 @@ export class PaymentsService {
     if (existing && existing.status === PaymentStatus.CONFIRMED)
       return { ignored: true, reason: 'Pagamento já processado' };
 
-    const amountStr = Number(intent.amount).toFixed(2);
+    const amountStr = Number(amount ?? intent.amount).toFixed(2);
     const payment = this.paymentRepository.create({
       paymentIntentId: intent.id,
       channelId: intent.channelId,
       userId: intent.channel.userId,
-      gatewayPaymentId: id ?? externalReference,
+      gatewayPaymentId: externalReference,
       amount: amountStr,
       feeAmount: '0.00',
       netAmount: amountStr,

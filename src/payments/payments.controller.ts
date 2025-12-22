@@ -1,8 +1,8 @@
-import { PaymentIntentsService } from './payment-intents.service';
-import { PaymentsService } from './payments.service';
-import { Body, Controller, Param, Post } from '@nestjs/common';
+import { Body, Controller, Headers, Param, Post } from '@nestjs/common';
 
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
+import { PaymentIntentsService } from './payment-intents.service';
+import { PaymentsService } from './payments.service';
 
 @Controller()
 export class PaymentsController {
@@ -20,7 +20,7 @@ export class PaymentsController {
   }
 
   @Post('payments/webhook')
-  handleWebhook(@Body() body: any) {
-    return this.paymentsService.handleGatewayWebhook(body);
+  handleWebhook(@Body() body: any, @Headers() headers: Record<string, any>) {
+    return this.paymentsService.handleGatewayWebhook(body, headers);
   }
 }
